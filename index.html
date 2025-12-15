@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍕 Pizza Express - Tracking</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Fredoka', sans-serif;
+      background: linear-gradient(135deg, #ff6b35, #f7931e);
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    
+    .container { max-width: 900px; margin: 0 auto; }
+    
+    header {
+      text-align: center;
+      padding: 2rem 0;
+      color: white;
+    }
+    
+    header h1 { font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0,0,0,0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      margin-top: 1rem;
+    }
+    
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #ff4444; }
+    .dot.on { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
+    
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+    
+    .tab {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .tab.active { background: white; color: #ff6b35; }
+    
+    .panel {
+      background: white;
+      border-radius: 24px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    
+    .panel h2 { color: #ff6b35; margin-bottom: 1rem; }
+    
+    /* Menú */
+    .menu-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: #fff8f0;
+      border-radius: 16px;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    
+    .menu-item:hover { border-color: #ff6b35; }
+    .menu-item.selected { border-color: #ff6b35; background: #fff0e6; }
+    .menu-item .emoji { font-size: 2rem; }
+    .menu-item .info h3 { color: #333; }
+    .menu-item .info p { color: #888; font-size: 0.85rem; }
+    .menu-item .price { margin-left: auto; font-size: 1.2rem; font-weight: 700; color: #ff6b35; }
+    
+    .order-btn {
+      width: 100%;
+      padding: 1rem;
+      margin-top: 1rem;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #ff6b35, #f7931e);
+      color: white;
+      font-family: inherit;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    
+    .order-btn:disabled { background: #ccc; cursor: not-allowed; }
+    
+    /* Tracking */
+    .order-header {
+      text-align: center;
+      padding: 1rem;
+      background: linear-gradient(135deg, #ff6b35, #f7931e);
+      border-radius: 16px;
+      color: white;
+      margin-bottom: 1.5rem;
+    }
+    
+    .order-header .id { font-size: 2rem; font-weight: 700; }
+    
+    .steps { position: relative; padding-left: 2rem; }
+    
+    .steps::before {
+      content: '';
+      position: absolute;
+      left: 0.6rem;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #eee;
+      border-radius: 2px;
+    }
+    
+    .step {
+      position: relative;
+      padding: 1rem 0 1rem 1.5rem;
+      opacity: 0.3;
+      transition: all 0.5s;
+    }
+    
+    .step.active, .step.done { opacity: 1; }
+    
+    .step::before {
+      content: '';
+      position: absolute;
+      left: -1.4rem;
+      top: 1.2rem;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ddd;
+      z-index: 1;
+    }
+    
+    .step.active::before { background: #ff6b35; animation: pulse 1s infinite; }
+    .step.done::before { background: #00cc66; }
+    
+    @keyframes pulse { 50% { transform: scale(1.2); } }
+    
+    .step h4 { color: #333; }
+    .step p { color: #888; font-size: 0.85rem; }
+    .step .time { color: #ff6b35; font-size: 0.75rem; margin-top: 0.25rem; }
+    
+    .delivery-animation {
+      text-align: center;
+      font-size: 4rem;
+      padding: 1rem;
+      animation: drive 1.5s infinite;
+    }
+    
+    @keyframes drive { 0%, 100% { transform: translateX(-20px); } 50% { transform: translateX(20px); } }
+    
+    /* Cocina */
+    .kitchen-order {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: #fff8f0;
+      border-radius: 12px;
+      border-left: 4px solid #ff6b35;
+      margin-bottom: 0.5rem;
+    }
+    
+    .kitchen-order .info { flex: 1; }
+    .kitchen-order h4 { color: #333; }
+    .kitchen-order p { color: #888; font-size: 0.85rem; }
+    
+    .kitchen-order button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 8px;
+      background: #00cc66;
+      color: white;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    
+    .hidden { display: none !important; }
+    
+    .log {
+      max-height: 150px;
+      overflow-y: auto;
+      padding: 1rem;
+      background: #f5f5f5;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+    }
+    
+    .log-entry { padding: 0.25rem 0; border-bottom: 1px solid #eee; }
+    .log-entry .t { color: #888; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🍕 Pizza Express</h1>
+      <p>Pedidos con tracking en tiempo real</p>
+      <div class="status-badge">
+        <span class="dot" id="dot"></span>
+        <span id="estado">Conectando...</span>
+      </div>
+    </header>
+
+    <div class="tabs">
+      <button class="tab active" onclick="mostrarVista('cliente')">🛒 Cliente</button>
+      <button class="tab" onclick="mostrarVista('cocina')">👨‍🍳 Cocina</button>
+    </div>
+
+    <!-- VISTA CLIENTE -->
+    <div id="vista-cliente">
+      <div class="panel" id="panel-menu">
+        <h2>🍕 Menú</h2>
+        <div class="menu-item" onclick="seleccionar(this, 'margarita', 12.99)">
+          <span class="emoji">🍕</span>
+          <div class="info"><h3>Margarita</h3><p>Tomate, mozzarella, albahaca</p></div>
+          <span class="price">$12.99</span>
+        </div>
+        <div class="menu-item" onclick="seleccionar(this, 'pepperoni', 14.99)">
+          <span class="emoji">🍕</span>
+          <div class="info"><h3>Pepperoni</h3><p>Pepperoni, mozzarella</p></div>
+          <span class="price">$14.99</span>
+        </div>
+        <div class="menu-item" onclick="seleccionar(this, 'hawaiana', 15.99)">
+          <span class="emoji">🍍</span>
+          <div class="info"><h3>Hawaiana</h3><p>Jamón, piña</p></div>
+          <span class="price">$15.99</span>
+        </div>
+        <button class="order-btn" id="btn-ordenar" onclick="ordenar()" disabled>
+          Selecciona una pizza
+        </button>
+      </div>
+
+      <div class="panel hidden" id="panel-tracking">
+        <h2>📍 Tu Pedido</h2>
+        <div class="order-header">
+          <div>Pedido</div>
+          <div class="id" id="order-id">-</div>
+        </div>
+        <div class="steps">
+          <div class="step" id="s-recibido"><h4>📝 Recibido</h4><p>Pedido registrado</p><div class="time"></div></div>
+          <div class="step" id="s-preparando"><h4>👨‍🍳 Preparando</h4><p>En la cocina</p><div class="time"></div></div>
+          <div class="step" id="s-horno"><h4>🔥 Horneando</h4><p>En el horno</p><div class="time"></div></div>
+          <div class="step" id="s-listo"><h4>✅ Listo</h4><p>Esperando repartidor</p><div class="time"></div></div>
+          <div class="step" id="s-camino"><h4>🛵 En Camino</h4><p>El repartidor va hacia ti</p><div class="time"></div></div>
+          <div class="step" id="s-entregado"><h4>🎉 Entregado</h4><p>¡Buen provecho!</p><div class="time"></div></div>
+        </div>
+        <div class="delivery-animation hidden" id="moto">🛵💨</div>
+      </div>
+
+      <div class="panel">
+        <h2>📋 Eventos</h2>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+
+    <!-- VISTA COCINA -->
+    <div id="vista-cocina" class="hidden">
+      <div class="panel">
+        <h2>👨‍🍳 Pedidos en Cola</h2>
+        <div id="cola-pedidos">
+          <p style="color:#888; text-align:center; padding:2rem;">Sin pedidos pendientes</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <script src="conector.js"></script>
+  <script>
+    // Configuración - URL de Relay Gateway
+    const RELAY_URL = 'http://localhost:5000';
+    
+    let relay;
+    let pizzaSeleccionada = null;
+    let miPedido = null;
+    let pedidosCocina = new Map();
+    
+    const ESTADOS = ['recibido', 'preparando', 'horno', 'listo', 'camino', 'entregado'];
+
+    async function iniciar() {
+      const deviceId = localStorage.getItem('deviceId') || 'device_' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('deviceId', deviceId);
+      
+      relay = new RelayConector(RELAY_URL);
+      
+      relay.on('connect', () => {
+        document.getElementById('dot').classList.add('on');
+        document.getElementById('estado').textContent = 'Conectado';
+        log('Conectado a Relay');
+      });
+      
+      relay.on('disconnect', () => {
+        document.getElementById('dot').classList.remove('on');
+        document.getElementById('estado').textContent = 'Desconectado';
+      });
+      
+      relay.on('relay', (data) => {
+        switch(data.tipo) {
+          case 'nuevo_pedido':
+            pedidosCocina.set(data.pedidoId, data);
+            renderCocina();
+            log(`Nuevo pedido: #${data.pedidoId} - ${data.pizza}`);
+            break;
+            
+          case 'estado_pedido':
+            if (data.pedidoId === miPedido) {
+              actualizarEstado(data.estado);
+              log(`Estado: ${data.estado}`);
+            }
+            if (data.estado === 'entregado') {
+              pedidosCocina.delete(data.pedidoId);
+              renderCocina();
+            }
+            break;
+        }
+      });
+      
+      await relay.conectar();
+      await relay.identificar(deviceId);
+      log(`Identificado: ${deviceId}`);
+    }
+
+    function seleccionar(el, pizza, precio) {
+      document.querySelectorAll('.menu-item').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+      pizzaSeleccionada = { nombre: pizza, precio };
+      document.getElementById('btn-ordenar').disabled = false;
+      document.getElementById('btn-ordenar').textContent = `Ordenar ${pizza} - $${precio}`;
+    }
+
+    function ordenar() {
+      if (!pizzaSeleccionada) return;
+      
+      const pedidoId = Math.random().toString(36).substr(2, 8).toUpperCase();
+      miPedido = pedidoId;
+      
+      document.getElementById('panel-menu').classList.add('hidden');
+      document.getElementById('panel-tracking').classList.remove('hidden');
+      document.getElementById('order-id').textContent = pedidoId;
+      
+      ESTADOS.forEach(e => {
+        document.getElementById('s-' + e).classList.remove('active', 'done');
+        document.getElementById('s-' + e).querySelector('.time').textContent = '';
+      });
+      
+      relay.enviarATodos({
+        tipo: 'nuevo_pedido',
+        pedidoId,
+        pizza: pizzaSeleccionada.nombre,
+        precio: pizzaSeleccionada.precio,
+        deviceId: localStorage.getItem('deviceId')
+      });
+      
+      setTimeout(() => {
+        relay.enviarATodos({ tipo: 'estado_pedido', pedidoId, estado: 'recibido' });
+      }, 500);
+      
+      log(`Pedido enviado: #${pedidoId}`);
+    }
+
+    function actualizarEstado(estado) {
+      const idx = ESTADOS.indexOf(estado);
+      if (idx === -1) return;
+      
+      ESTADOS.forEach((e, i) => {
+        const el = document.getElementById('s-' + e);
+        el.classList.remove('active', 'done');
+        
+        if (i < idx) el.classList.add('done');
+        else if (i === idx) {
+          el.classList.add('active');
+          el.querySelector('.time').textContent = new Date().toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+        }
+      });
+      
+      const moto = document.getElementById('moto');
+      if (estado === 'camino') moto.classList.remove('hidden');
+      else if (estado === 'entregado') {
+        moto.classList.add('hidden');
+        setTimeout(() => {
+          document.getElementById('panel-menu').classList.remove('hidden');
+          document.getElementById('panel-tracking').classList.add('hidden');
+          pizzaSeleccionada = null;
+          miPedido = null;
+          document.getElementById('btn-ordenar').disabled = true;
+          document.getElementById('btn-ordenar').textContent = 'Selecciona una pizza';
+          document.querySelectorAll('.menu-item').forEach(e => e.classList.remove('selected'));
+        }, 3000);
+      }
+    }
+
+    function renderCocina() {
+      const cola = document.getElementById('cola-pedidos');
+      
+      if (pedidosCocina.size === 0) {
+        cola.innerHTML = '<p style="color:#888; text-align:center; padding:2rem;">Sin pedidos pendientes</p>';
+        return;
+      }
+      
+      cola.innerHTML = '';
+      pedidosCocina.forEach((pedido, id) => {
+        const estado = pedido.estadoActual || 0;
+        const div = document.createElement('div');
+        div.className = 'kitchen-order';
+        div.innerHTML = `
+          <span style="font-size:2rem;">🍕</span>
+          <div class="info">
+            <h4>#${id}</h4>
+            <p>${pedido.pizza} - $${pedido.precio}</p>
+          </div>
+          <button onclick="avanzarPedido('${id}')">▶ ${ESTADOS[estado + 1] || 'Fin'}</button>
+        `;
+        cola.appendChild(div);
+      });
+    }
+
+    function avanzarPedido(pedidoId) {
+      const pedido = pedidosCocina.get(pedidoId);
+      if (!pedido) return;
+      
+      const estadoActual = pedido.estadoActual || 0;
+      const nuevoEstado = estadoActual + 1;
+      
+      if (nuevoEstado >= ESTADOS.length) {
+        pedidosCocina.delete(pedidoId);
+      } else {
+        pedido.estadoActual = nuevoEstado;
+        pedidosCocina.set(pedidoId, pedido);
+      }
+      
+      relay.enviarATodos({
+        tipo: 'estado_pedido',
+        pedidoId,
+        estado: ESTADOS[nuevoEstado]
+      });
+      
+      renderCocina();
+    }
+
+    function mostrarVista(vista) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      document.getElementById('vista-cliente').classList.toggle('hidden', vista !== 'cliente');
+      document.getElementById('vista-cocina').classList.toggle('hidden', vista !== 'cocina');
+    }
+
+    function log(msg) {
+      const div = document.createElement('div');
+      div.className = 'log-entry';
+      div.innerHTML = `<span class="t">${new Date().toLocaleTimeString('es')}</span> ${msg}`;
+      const logEl = document.getElementById('log');
+      logEl.insertBefore(div, logEl.firstChild);
+    }
+
+    iniciar();
+  </script>
+</body>
+</html>
+
